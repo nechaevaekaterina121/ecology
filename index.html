@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Эко-сортировка — спаси планету!</title>
+<style>
+:root{--green:#247a55;--mint:#e8f5ed;--ink:#24352c;--paper:#fffdf7;--line:#d7e6db}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#eaf7ee,#eaf3fb);font-family:Arial,sans-serif;color:var(--ink)}
+main{max-width:1050px;margin:auto;padding:18px}
+header{text-align:center;padding:12px 10px 18px}
+h1{margin:4px 0;color:#17633f;font-size:clamp(27px,5vw,42px)}
+header p{margin:8px auto;max-width:680px;line-height:1.45}
+.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 6px 20px #315d3b12}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:#f0f7f1;border-radius:12px;padding:9px 13px;font-weight:bold}
+button{border:0;border-radius:12px;padding:11px 16px;background:#247a55;color:white;font-weight:bold;font-size:15px;cursor:pointer}
+button:hover{filter:brightness(.95)}
+#items{display:flex;flex-wrap:wrap;gap:10px;min-height:110px;align-content:flex-start;padding:12px;background:#f8fbf8;border:2px dashed #c9ddce;border-radius:16px}
+.item{touch-action:none;user-select:none;cursor:grab;background:white;border:1px solid #d9e5dc;border-radius:13px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-width:130px;box-shadow:0 2px 6px #193d2010;font-size:15px}
+.item .emoji{font-size:27px}
+.item.dragging{position:fixed;z-index:1000;pointer-events:none;transform:scale(1.05);box-shadow:0 10px 25px #0003;cursor:grabbing}
+.bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.bin{min-height:150px;border:2px solid var(--line);border-radius:17px;padding:12px;text-align:center;background:#fbfefb;transition:.15s}
+.bin strong{display:block;margin:6px 0}
+.bin .binemoji{font-size:34px}
+.bin.over{background:#e4f5e9;border-color:#247a55;transform:scale(1.015)}
+.bin small{display:block;color:#63736a;line-height:1.3}
+#message{margin-top:14px;min-height:58px;padding:12px 14px;border-radius:13px;background:#f1f6f2;line-height:1.4}
+#message.good{background:#e5f6e9;color:#145b35}
+#message.bad{background:#fff1e8;color:#8a421c}
+#finish{display:none;margin-top:15px;text-align:center;padding:18px;background:#eff8ef;border-radius:16px}
+#finish h2{color:#17633f}
+.hint{font-size:13px;color:#66766c;margin-top:10px;line-height:1.4}
+@media(max-width:650px){main{padding:10px}.bins{grid-template-columns:repeat(2,1fr)}.bin{min-height:135px}.item{min-width:calc(50% - 5px);justify-content:flex-start;padding:9px}.top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div style="font-size:42px">🌍 ♻️ 🌱</div>
+  <h1>Эко-сортировка</h1>
+  <p><b>Спаси планету — рассортируй отходы!</b><br>Перетащи каждый предмет в подходящий контейнер. Если ошибёшься, игра подскажет правильный ответ.</p>
+</header>
+<section class="panel">
+  <div class="top">
+    <div class="stats">
+      <div class="stat">⭐ Баллы: <span id="score">0</span></div>
+      <div class="stat">📦 Осталось: <span id="left">18</span></div>
+    </div>
+    <button id="restart">Начать заново</button>
+  </div>
+  <h3 style="margin:4px 0 10px">Предметы для сортировки</h3>
+  <div id="items" aria-label="Предметы для сортировки"></div>
+  <div class="bins" id="bins">
+    <div class="bin" data-type="paper"><div class="binemoji">📄</div><strong>БУМАГА</strong><small>Газеты, картон, чистая бумага</small></div>
+    <div class="bin" data-type="plastic"><div class="binemoji">🧴</div><strong>ПЛАСТИК</strong><small>Подходящая пластиковая упаковка</small></div>
+    <div class="bin" data-type="glass"><div class="binemoji">🍾</div><strong>СТЕКЛО</strong><small>Стеклянные бутылки и банки</small></div>
+    <div class="bin" data-type="metal"><div class="binemoji">🥫</div><strong>МЕТАЛЛ</strong><small>Алюминиевые и жестяные банки</small></div>
+    <div class="bin" data-type="organic"><div class="binemoji">🍎</div><strong>ОРГАНИЧЕСКИЕ ОТХОДЫ</strong><small>Пищевые и растительные остатки*</small></div>
+    <div class="bin" data-type="special"><div class="binemoji">🔋</div><strong>ОСОБЫЙ СБОР</strong><small>Батарейки и опасные отходы</small></div>
+  </div>
+  <div id="message" role="status">Начни сортировку: зажми предмет мышкой или пальцем и перетащи его в нужный контейнер.</div>
+  <div id="finish"><h2>🎉 Отличная работа!</h2><p id="result"></p><p><b>Помни:</b> правила приёма отходов могут различаться. Проверяй, что принимают в твоём городе, и сдавай батарейки только в специальные пункты.</p><button id="again">Сыграть ещё раз</button></div>
+  <p class="hint">* Органические отходы подходят для компостирования, если такая возможность есть. Не все контейнеры для раздельного сбора принимают их. Перед сдачей упаковки освободи её от содержимого; промывай и суши только если этого требуют местные правила.</p>
+</section>
+</main>
+<script>
+const data=[
+ ['📰','Старая газета','paper','Газеты и другая чистая бумага могут стать сырьём для новой бумажной продукции.'],
+ ['📦','Картонная коробка','paper','Чистый сухой картон обычно собирают вместе с макулатурой.'],
+ ['📓','Старая тетрадь','paper','Бумажные страницы подходят для макулатуры. Скрепки и пластиковые детали лучше отделить, если это требуется правилами приёма.'],
+ ['🥚','Картонная упаковка от яиц','paper','Чистую бумажную упаковку обычно относят к макулатуре; проверь местные правила.'],
+ ['🧴','Бутылка от воды','plastic','Бутылки из ПЭТ (маркировка 1) часто принимают отдельно.'],
+ ['🧼','Флакон от шампуня','plastic','Флаконы из некоторых видов пластика, например ПНД (маркировка 2), могут принимать на переработку.'],
+ ['🥛','Пластиковый стаканчик','plastic','Стаканчики принимают не везде: проверь маркировку и правила пункта сбора.'],
+ ['🛍️','Пластиковая упаковка','plastic','Не вся плёнка и не каждый пакет подходят для переработки. Смотри местные правила.'],
+ ['🍾','Стеклянная бутылка','glass','Стеклянную тару часто собирают отдельно. Керамика и жаропрочное стекло — не то же самое.'],
+ ['🫙','Стеклянная банка','glass','Банки можно отправить в контейнер для стеклотары, если он предусмотрен системой сбора.'],
+ ['🥫','Жестяная банка','metal','Банки из стали обычно собирают как металлическое вторсырьё.'],
+ ['🥤','Алюминиевая банка','metal','Алюминий можно перерабатывать и использовать снова.'],
+ ['🍌','Банановая кожура','organic','Растительные пищевые остатки подходят для компостирования.'],
+ ['🍎','Яблочный огрызок','organic','Пищевые остатки можно компостировать при наличии подходящей системы.'],
+ ['🍂','Опавшие листья','organic','Листья можно компостировать или использовать для получения органического удобрения.'],
+ ['🔋','Использованная батарейка','special','Батарейки могут содержать опасные вещества. Сдавай их в специальные пункты сбора.'],
+ ['💡','Перегоревшая лампа','special','Некоторые лампы требуют специального сбора. Не клади их в обычный контейнер.'],
+ ['📱','Старый мобильный телефон','special','Электроника содержит ценные материалы и компоненты, поэтому её сдают в специальные пункты приёма.']
+];
+let score=0, remaining=[], locked=false, active=null, offset={x:0,y:0};
+const itemsEl=document.getElementById('items'), message=document.getElementById('message');
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function start(){score=0;remaining=shuffle(data);locked=false;document.getElementById('score').textContent=score;document.getElementById('left').textContent=remaining.length;document.getElementById('finish').style.display='none';message.className='';message.textContent='Начни сортировку: зажми предмет мышкой или пальцем и перетащи его в нужный контейнер.';render()}
+function render(){itemsEl.innerHTML='';remaining.forEach((d,i)=>{const el=document.createElement('div');el.className='item';el.dataset.index=i;el.innerHTML=`<span class="emoji">${d[0]}</span><span>${d[1]}</span>`;el.addEventListener('pointerdown',down);itemsEl.appendChild(el)})}
+function down(e){if(locked)return;e.preventDefault();const el=e.currentTarget;const r=el.getBoundingClientRect();offset={x:e.clientX-r.left,y:e.clientY-r.top};active={el,data:remaining[Number(el.dataset.index)],index:Number(el.dataset.index)};const ghost=el.cloneNode(true);ghost.classList.add('dragging');ghost.style.width=r.width+'px';ghost.style.left=(e.clientX-offset.x)+'px';ghost.style.top=(e.clientY-offset.y)+'px';document.body.appendChild(ghost);active.ghost=ghost;el.style.visibility='hidden';document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true})}
+function move(e){if(!active)return;active.ghost.style.left=(e.clientX-offset.x)+'px';active.ghost.style.top=(e.clientY-offset.y)+'px';document.querySelectorAll('.bin').forEach(b=>{const r=b.getBoundingClientRect();b.classList.toggle('over',e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)})}
+function up(e){document.removeEventListener('pointermove',move);if(!active)return;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.bin');document.querySelectorAll('.bin').forEach(b=>b.classList.remove('over'));active.ghost.remove();const a=active;active=null;if(target){const type=target.dataset.type;if(type===a.data[2]){score+=1;remaining.splice(a.index,1);document.getElementById('score').textContent=score;document.getElementById('left').textContent=remaining.length;message.className='good';message.textContent='Верно! '+a.data[3];render();if(!remaining.length)finish()}else{a.el.style.visibility='';message.className='bad';message.textContent='Почти! '+a.data[3]+' Попробуй ещё раз.'}}else{a.el.style.visibility='';message.className='';message.textContent='Перетащи предмет прямо на подходящий контейнер.'}}
+function finish(){document.getElementById('finish').style.display='block';document.getElementById('result').textContent=`Ты правильно рассортировал(а) все предметы и набрал(а) ${score} из ${data.length} баллов! Ты настоящий друг природы!`}
+document.getElementById('restart').addEventListener('click',start);document.getElementById('again').addEventListener('click',start);start();
+</script>
+</body>
+</html>
